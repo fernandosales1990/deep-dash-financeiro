@@ -1,0 +1,15 @@
+{
+  "name": "Deep Dash — Sistema Financeiro",
+  "short_name": "Deep Dash",
+  "description": "Controle financeiro das edições do Deep Dash",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#18181b",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
