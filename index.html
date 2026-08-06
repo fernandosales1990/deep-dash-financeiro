@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Dash — Sistema Financeiro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#f3f4f6;
+  --card:#ffffff;
+  --card2:#f2f3f5;
+  --border:rgba(15,23,42,0.08);
+  --border-strong:rgba(15,23,42,0.16);
+  --focus:#27272a;
+  --red:#dc2626;
+  --green:#16a34a;
+  --amber:#b45309;
+  --text:#18181b;
+  --text-mid:#52525b;
+  --text-dim:#8b8d94;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(15,23,42,0.05), 0 1px 1px rgba(15,23,42,0.03);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter', sans-serif;
+  font-weight:400;
+  min-height:100vh;
+  padding-bottom:60px;
+}
+.wrap{max-width:1320px;margin:0 auto;padding:24px 20px 80px;}
+
+/* ---------- typography helpers ---------- */
+h1,h2,h3,.display{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-0.01em;}
+.mono{font-family:'DM Mono',monospace;}
+.label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);}
+
+/* ---------- header ---------- */
+.header{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:20px;padding:22px 0 26px;border-bottom:1px solid var(--border);margin-bottom:24px;
+}
+.brand{display:flex;flex-direction:column;gap:4px;}
+.brand .eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);}
+.brand .logo{font-family:'Inter',sans-serif;font-weight:800;font-size:24px;letter-spacing:-0.01em;color:var(--text);}
+.brand .logo span{color:var(--text-mid);font-weight:600;}
+
+.header-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+select, input, button{font-family:'Inter',sans-serif;}
+.edicao-select{
+  background:var(--card);border:1px solid var(--border-strong);color:var(--text);
+  padding:9px 14px;border-radius:8px;font-size:13px;min-width:180px;
+}
+.icon-btn{
+  background:var(--card);border:1px solid var(--border-strong);color:var(--text);
+  width:34px;height:34px;border-radius:8px;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:background .15s;
+}
+.icon-btn:hover{background:var(--card2);}
+.sync-indicator{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);min-width:80px;}
+.btn{
+  background:var(--card);border:1px solid var(--border-strong);color:var(--text);
+  padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:500;
+  transition:background .15s,border-color .15s;
+}
+.btn:hover{background:var(--card2);border-color:rgba(15,23,42,0.24);}
+.btn-primary{background:var(--focus);border-color:var(--focus);color:#fff;}
+.btn-primary:hover{background:#000;border-color:#000;}
+
+/* ---------- login gate ---------- */
+.login-gate{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);z-index:1000;padding:20px;
+}
+.login-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  box-shadow:var(--shadow);padding:36px 32px;width:100%;max-width:340px;text-align:center;
+}
+.login-card .eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);}
+.login-card .logo{font-family:'Inter',sans-serif;font-weight:800;font-size:26px;color:var(--text);margin:6px 0 4px;letter-spacing:-0.01em;}
+.login-card .logo span{color:var(--text-mid);font-weight:600;}
+.login-sub{color:var(--text-mid);font-size:13px;margin-bottom:22px;}
+#loginForm{display:flex;flex-direction:column;gap:12px;}
+#loginPassword{
+  background:var(--card2);border:1px solid var(--border-strong);color:var(--text);
+  padding:12px 14px;border-radius:8px;font-size:16px;text-align:center;font-family:'Inter',sans-serif;
+}
+#loginPassword:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px rgba(24,24,27,0.06);}
+.login-error{color:var(--red);font-size:12.5px;margin-top:14px;}
+
+/* ---------- modal genérico ---------- */
+.modal-overlay{
+  position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:rgba(15,23,42,0.45);z-index:1000;padding:20px;
+}
+.modal-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  box-shadow:var(--shadow);padding:26px 24px;width:100%;max-width:380px;
+}
+.modal-title{font-family:'Inter',sans-serif;font-weight:700;font-size:16px;margin-bottom:8px;}
+.modal-message{color:var(--text-mid);font-size:13.5px;line-height:1.5;margin-bottom:16px;}
+.modal-input{
+  width:100%;background:var(--card2);border:1px solid var(--border-strong);color:var(--text);
+  padding:11px 13px;border-radius:8px;font-size:16px;margin-bottom:18px;font-family:'Inter',sans-serif;
+}
+.modal-input:focus{outline:none;border-color:var(--focus);box-shadow:0 0 0 3px rgba(24,24,27,0.06);}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff;}
+.btn-danger:hover{background:#b91c1c;border-color:#b91c1c;}
+
+/* ---------- conflict banner ---------- */
+.conflict-banner{
+  display:none;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+  background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px 18px;margin-bottom:20px;
+  font-size:13px;color:#92400e;
+}
+.conflict-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ---------- KPI row ---------- */
+.kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:28px;}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.kpi .label{margin-bottom:8px;}
+.kpi .val{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;}
+.kpi-hint{font-size:10.5px;color:var(--text-dim);margin-top:5px;}
+
+/* ---------- campo "pago"/"recebido" com o restante calculado ---------- */
+.pago-cell{display:flex;flex-direction:column;align-items:flex-end;gap:3px;width:100%;}
+.pago-cell input{width:100%;}
+.falta-hint{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--red);white-space:nowrap;}
+.kpi.neg .val{color:var(--red);}
+.kpi.pos .val{color:var(--green);}
+
+/* ---------- section ---------- */
+.section{margin-bottom:32px;}
+.section-title{
+  font-size:13px;font-weight:600;margin-bottom:14px;color:var(--text-mid);display:flex;align-items:center;gap:10px;
+  text-transform:uppercase;letter-spacing:0.04em;
+  background:none;border:none;padding:0;width:100%;font-family:inherit;cursor:default;-webkit-tap-highlight-color:transparent;
+}
+.section-title .dot{width:6px;height:6px;border-radius:50%;background:var(--text-dim);display:inline-block;flex-shrink:0;}
+.section-title.amber .dot{background:var(--amber);}
+.section-chevron{display:none;margin-left:auto;font-size:15px;color:var(--text-dim);transition:transform .15s;}
+
+/* ---------- controles de expandir/recolher tudo (só aparecem no mobile) ---------- */
+.accordion-controls{display:none;gap:16px;margin:-12px 0 18px;}
+.accordion-toggle-all{
+  background:none;border:none;color:var(--text-mid);font-size:12px;font-family:'DM Mono',monospace;
+  cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:4px 0;
+}
+.accordion-toggle-all:hover{color:var(--text);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.card.amber-tinted{background:linear-gradient(180deg, #fffbeb, var(--card));border-color:#fde9c2;}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse;}
+.table-scroll{overflow-x:auto;}
+thead th{
+  background:var(--card2);color:var(--text-dim);font-family:'DM Mono',monospace;
+  font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;text-align:left;
+  padding:10px 12px;border-bottom:1px solid var(--border-strong);white-space:nowrap;
+}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--border);font-size:13.5px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:rgba(15,23,42,0.02);}
+
+td input[type="text"], td input[type="number"], td select{
+  background:transparent;border:1px solid transparent;color:var(--text);
+  padding:6px 8px;border-radius:6px;font-size:13.5px;width:100%;min-width:80px;
+  transition:border-color .15s,background .15s;
+}
+td input[type="text"]:hover, td input[type="number"]:hover, td select:hover{border-color:var(--border-strong);background:var(--card2);}
+td input[type="text"]:focus, td input[type="number"]:focus, td select:focus{
+  outline:none;border-color:var(--focus);background:#fff;box-shadow:0 0 0 3px rgba(24,24,27,0.06);
+}
+td select{cursor:pointer;}
+td input[type="number"]{font-family:'DM Mono',monospace;text-align:right;min-width:70px;}
+
+.status-pill{
+  font-family:'DM Mono',monospace;font-size:11px;padding:5px 10px;border-radius:20px;
+  border:1px solid var(--border-strong);cursor:pointer;background:var(--card2);white-space:nowrap;
+}
+.status-pill.pago, .status-pill.recebido{color:#15803d;border-color:#bbf7d0;background:#f0fdf4;}
+.status-pill.parcial{color:#b45309;border-color:#fde68a;background:#fffbeb;}
+.status-pill.aberto, .status-pill.pendente{color:#b91c1c;border-color:#fecaca;background:#fef2f2;}
+
+.row-remove{
+  background:transparent;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;
+  width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+}
+.row-remove:hover{color:var(--red);background:#fef2f2;}
+
+.add-row-btn{
+  margin-top:12px;background:transparent;border:1px dashed var(--border-strong);color:var(--text-mid);
+  padding:10px;border-radius:8px;width:100%;cursor:pointer;font-size:13px;transition:all .15s;
+}
+.add-row-btn:hover{border-color:var(--focus);color:var(--text);background:var(--card2);}
+
+/* ---------- despesas grid ---------- */
+.desp-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;}
+.desp-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px;}
+.total-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.total-card .val{font-family:'DM Mono',monospace;font-size:19px;margin-top:6px;}
+.total-card .sub{font-family:'DM Mono',monospace;font-size:11px;color:var(--red);margin-top:4px;}
+.total-card.amber .val{color:var(--amber);}
+
+/* ---------- ingressos ---------- */
+.ing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.ing-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.ing-card h3{font-size:13px;margin-bottom:14px;font-weight:700;}
+.ing-field{margin-bottom:10px;}
+.ing-field label{display:block;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+.ing-field input{
+  width:100%;background:var(--card2);border:1px solid var(--border-strong);color:var(--text);
+  padding:9px 10px;border-radius:6px;font-family:'DM Mono',monospace;font-size:13.5px;
+}
+.ing-field input:focus{outline:none;border-color:var(--focus);background:#fff;box-shadow:0 0 0 3px rgba(24,24,27,0.06);}
+.ing-liquido{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.ing-liquido .val{font-family:'DM Mono',monospace;font-size:17px;color:var(--green);}
+
+/* ---------- lower grid: socios / receitas ---------- */
+.lower-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;}
+
+/* investimentos por sócio */
+.socio-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.socio-head{display:flex;align-items:center;gap:10px;}
+.socio-name{
+  background:transparent;border:none;color:var(--text);font-family:'Inter',sans-serif;
+  font-weight:600;font-size:14.5px;padding:4px 0;flex:1;
+}
+.socio-name:focus{outline:none;border-bottom:1px solid var(--border-strong);}
+.socio-total-row{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin:6px 0 10px;padding-bottom:10px;border-bottom:1px solid var(--border);
+}
+.socio-total-row .label{margin-bottom:3px;}
+.socio-total-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:600;}
+.roi-badge{font-family:'DM Mono',monospace;font-size:10.5px;padding:4px 9px;border-radius:20px;white-space:nowrap;}
+.roi-badge.pos{color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;}
+.roi-badge.neg{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;}
+.socio-items-empty{color:var(--text-dim);font-size:12.5px;padding:2px 0 10px;}
+.socio-item-row{display:flex;gap:8px;align-items:center;margin-bottom:7px;}
+.socio-item-row input[type="text"]{
+  flex:1;background:var(--card);border:1px solid var(--border-strong);color:var(--text);
+  padding:7px 9px;border-radius:6px;font-size:13px;
+}
+.socio-item-row input[type="number"]{
+  width:100px;background:var(--card);border:1px solid var(--border-strong);color:var(--text);
+  padding:7px 9px;border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;text-align:right;
+}
+.socio-item-row input:focus{outline:none;border-color:var(--focus);}
+.add-item-btn{
+  background:transparent;border:1px dashed var(--border-strong);color:var(--text-dim);
+  padding:7px;border-radius:6px;width:100%;cursor:pointer;font-size:12px;margin-top:4px;
+}
+.add-item-btn:hover{border-color:var(--focus);color:var(--text);}
+
+/* ---------- resumo cards ---------- */
+.resumo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}
+.resumo-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
+.resumo-card .val{font-family:'DM Mono',monospace;font-size:23px;margin-top:8px;}
+.resumo-card.pos .val{color:var(--green);}
+.resumo-card.neg .val{color:var(--red);}
+.resumo-card.amber .val{color:var(--amber);}
+
+/* ---------- acerto final ---------- */
+.acerto-summary{
+  display:flex;flex-wrap:wrap;gap:6px 20px;align-items:center;
+  background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:16px;
+  font-family:'DM Mono',monospace;font-size:13px;
+}
+.acerto-line{display:flex;align-items:center;gap:8px;}
+.acerto-summary .val{font-size:15px;}
+.acerto-op{color:var(--text-dim);}
+
+/* ---------- lucratividade ---------- */
+.lucro-hero{text-align:center;padding:28px 20px;margin-bottom:20px;}
+.lucro-hero .label{margin-bottom:8px;}
+.lucro-hero .val{font-family:'Inter',sans-serif;font-weight:800;font-size:40px;letter-spacing:-0.01em;}
+.lucro-hero .val.pos{color:var(--green);}
+.lucro-hero .val.neg{color:var(--red);}
+.lucro-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.lucro-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;text-align:center;box-shadow:var(--shadow);}
+.lucro-card .name{font-weight:600;font-size:14px;margin-bottom:12px;}
+.lucro-card .row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-mid);margin-bottom:6px;}
+.lucro-card .row .v{font-family:'DM Mono',monospace;color:var(--text);}
+.lucro-card .roi{margin-top:10px;font-family:'DM Mono',monospace;font-size:20px;}
+.lucro-card .roi.pos{color:var(--green);}
+.lucro-card .roi.neg{color:var(--red);}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .kpi-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .desp-grid{grid-template-columns:minmax(0,1fr);}
+  .desp-totals{grid-template-columns:minmax(0,1fr);}
+  .ing-grid{grid-template-columns:minmax(0,1fr);}
+  .lower-grid{grid-template-columns:minmax(0,1fr);}
+  .resumo-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .lucro-grid{grid-template-columns:minmax(0,1fr);}
+}
+
+/* ---------- mobile: header ---------- */
+@media (max-width:700px){
+  .wrap{padding:14px 12px 56px;}
+  .header{flex-direction:row;flex-wrap:wrap;padding:14px 0 14px;margin-bottom:16px;}
+  .brand{width:100%;}
+  .brand .eyebrow{font-size:10px;}
+  .brand .logo{font-size:19px;}
+  .header-controls{width:100%;gap:8px;}
+  .edicao-select{order:1;flex:1 1 auto;min-width:0;}
+  .icon-btn{order:2;flex:0 0 auto;}
+  #logoutBtn{order:3;flex:0 0 auto;}
+  .btn-primary{order:3;flex:0 0 auto;}
+  .sync-indicator{order:4;flex:1 1 100%;text-align:right;font-size:11px;}
+
+  /* touch targets — compactos mas ainda confortáveis de tocar */
+  .icon-btn{width:38px;height:38px;font-size:15px;}
+  .btn{padding:9px 14px;min-height:38px;font-size:12.5px;}
+  .add-row-btn, .add-item-btn{padding:10px;min-height:38px;font-size:12.5px;}
+  .row-remove{width:28px;height:28px;font-size:15px;}
+  .status-pill{padding:6px 10px;min-height:30px;font-size:10.5px;}
+  .socio-toggle{padding:4px 0;font-size:11.5px;}
+
+  /* kpis */
+  .kpi-row{gap:8px;margin-bottom:16px;}
+  .kpi{padding:10px 12px;}
+  .kpi .label{font-size:10px;margin-bottom:5px;}
+  .kpi .val{font-size:16px;}
+  .kpi-hint{font-size:9.5px;}
+
+  /* prevent iOS auto-zoom: inputs need >=16px */
+  td input[type="text"], td input[type="number"], td select,
+  .ing-field input, .socio-item-row input[type="text"], .socio-item-row input[type="number"], .socio-name{
+    font-size:16px;
+  }
+
+  .section{margin-bottom:22px;}
+  .section-title{font-size:11px;cursor:pointer;padding:3px 0;gap:8px;}
+  .section-chevron{display:inline-block;}
+  .section.collapsed .section-chevron{transform:rotate(-90deg);}
+  .section.collapsed .section-body{display:none;}
+  .accordion-controls{display:flex;margin:-8px 0 14px;}
+  .accordion-toggle-all{font-size:11px;}
+  .card, .ing-card, .total-card, .resumo-card, .lucro-card, .socio-card{padding:11px;}
+
+  /* ---- tables become compact 2-column cards ---- */
+  .table-scroll{overflow-x:visible;}
+  table.fin-table thead{display:none;}
+  table.fin-table, table.fin-table tbody, table.fin-table tfoot{display:block;width:100%;}
+  table.fin-table tbody tr, table.fin-table tfoot tr{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:8px;
+    border:1px solid var(--border);border-left:3px solid var(--border-strong);border-radius:8px;margin-bottom:7px;
+    padding:7px 9px;background:var(--card);position:relative;
+  }
+  table.fin-table tbody tr:hover{background:var(--card);}
+
+  /* indicador de status: vermelho = em aberto, âmbar = parcial, verde = pago/recebido */
+  table.fin-table tbody tr[data-status="pago"], table.fin-table tbody tr[data-status="recebido"]{border-left-color:var(--green);}
+  table.fin-table tbody tr[data-status="parcial"]{border-left-color:var(--amber);}
+  table.fin-table tbody tr[data-status="aberto"], table.fin-table tbody tr[data-status="pendente"]{border-left-color:var(--red);}
+
+  table.fin-table td{
+    display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+    padding:3px 0;text-align:left;min-height:0;min-width:0;
+  }
+  table.fin-table td[data-label]::before{
+    content:attr(data-label);font-family:'DM Mono',monospace;font-size:8.5px;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--text-dim);
+  }
+  table.fin-table td[data-label=""]::before{content:none;}
+  table.fin-table td input, table.fin-table td select{width:100%;max-width:none;padding:3px 2px;}
+  table.fin-table td input[type="number"]{text-align:left;}
+  table.fin-table td .pago-cell{width:100%;align-items:flex-start;}
+  table.fin-table td .pago-cell input{max-width:100%;text-align:left;}
+  .falta-hint{font-size:9px;}
+
+  /* área de cada campo dentro do grid 2 colunas — compartilhado entre despesas/provisões/receitas */
+  table.fin-table td[data-label="Categoria"]{grid-area:cat;}
+  table.fin-table td[data-label="Descrição"]{grid-area:desc;}
+  table.fin-table td[data-label="Valor"]{grid-area:val;}
+  table.fin-table td[data-label="Status"]{grid-area:status;}
+  table.fin-table td[data-label="Pago"]{grid-area:pago;}
+  table.fin-table td[data-label="Recebido"]{grid-area:pago;}
+  table.fin-table td[data-label=""]{grid-area:rm;}
+
+  #despReaisBody tr, #recBody tr{
+    grid-template-areas:"cat val" "desc desc" "status pago" "rm rm";
+  }
+  #despProvBody tr{
+    grid-template-areas:"cat val" "desc desc" "rm rm";
+  }
+
+  /* botão remover: linha própria, alinhada à direita, separada por um filete */
+  table.fin-table td[data-label=""]{
+    flex-direction:row;justify-content:flex-end;align-items:center;
+    border-top:1px solid var(--border);padding:6px 0 0;margin-top:2px;
+  }
+
+  /* linha de estado vazio (nenhuma despesa/receita ainda) */
+  table.fin-table td.empty-hint{display:block;grid-column:1/-1;text-align:center;border:none;padding:14px 0;font-size:12px;}
+  table.fin-table tbody tr:has(td.empty-hint){
+    display:block;border:none;background:transparent;padding:0;
+  }
+
+  /* acerto: nome do sócio / "Total" como título do card + pares valor+status */
+  table.fin-table td[data-label="Investimento"]{grid-area:invest;}
+  table.fin-table td[data-label="Devolução"]{grid-area:dev;}
+  table.fin-table td[data-label="Status Devolução"]{grid-area:statusdev;}
+  table.fin-table td[data-label="Parte do Lucro"]{grid-area:lucro;}
+  table.fin-table td[data-label="Status Lucro"]{grid-area:statuslucro;}
+  table.fin-table td[data-label="Total a Receber"]{
+    grid-area:total;border-top:1px solid var(--border);padding-top:6px;margin-top:2px;
+  }
+  table.fin-table td.acerto-name{
+    grid-area:name;grid-column:1/-1;text-align:left;font-weight:700;font-size:13px;
+    border-bottom:1px solid var(--border-strong);padding:0 0 8px;margin-bottom:4px;
+  }
+  #acertoBody tr, #acertoBody ~ tfoot tr{
+    grid-template-areas:"name name" "invest invest" "dev statusdev" "lucro statuslucro" "total total";
+  }
+  #acertoBody ~ tfoot td:not([data-label]):not(.acerto-name){display:none;}
+
+  /* acerto summary stacks as clean rows */
+  .acerto-summary{flex-direction:column;align-items:stretch;gap:7px;padding:11px 13px;font-size:11.5px;}
+  .acerto-line{justify-content:space-between;}
+  .acerto-summary .val{font-size:13px;}
+  .acerto-op{display:none;}
+
+  /* socio card header: name on its own row, value+ROI below (column stack avoids
+     the flex-basis:100%-in-wrapping-container sizing bug) */
+  .socio-name{width:100%;}
+  .socio-total-row{margin:4px 0 8px;padding-bottom:8px;}
+  .socio-total-val{font-size:14px;}
+  .roi-badge{font-size:10px;padding:3px 8px;}
+  .socio-item-row{gap:6px;margin-bottom:5px;}
+
+  /* grids: menos respiro entre cards no mobile */
+  .desp-grid{gap:12px;}
+  .desp-totals{gap:8px;margin-top:12px;}
+  .ing-grid{gap:8px;}
+  .lower-grid{gap:14px;margin-bottom:22px;}
+  .lower-grid .section{margin-bottom:0;}
+  .resumo-grid{gap:8px;}
+  .lucro-grid{gap:8px;}
+
+  /* ingressos */
+  .ing-card h3{font-size:12px;margin-bottom:10px;}
+  .ing-field{margin-bottom:8px;}
+  .ing-field label{font-size:9.5px;}
+  .ing-field input{padding:8px 9px;}
+  .ing-liquido{margin-top:8px;padding-top:8px;}
+  .ing-liquido .val{font-size:15px;}
+
+  /* totais / resumo / lucratividade */
+  .total-card .val{font-size:16px;}
+  .total-card .sub{font-size:10px;}
+  .resumo-card .val{font-size:18px;}
+  .lucro-hero{padding:20px 14px;margin-bottom:14px;}
+  .lucro-hero .val{font-size:28px;}
+  .lucro-card{padding:14px 11px;}
+  .lucro-card .name{font-size:13px;margin-bottom:9px;}
+  .lucro-card .row{font-size:11.5px;margin-bottom:5px;}
+  .lucro-card .roi{font-size:17px;margin-top:8px;}
+}
+
+@media (max-width:520px){
+  .resumo-grid{grid-template-columns:minmax(0,1fr);}
+}
+@media (max-width:400px){
+  .brand .logo{font-size:18px;}
+  .kpi .val{font-size:14.5px;}
+  .kpi{padding:9px 10px;}
+  .kpi .label{font-size:9.5px;}
+}
+
+/* ---------- print ---------- */
+@media print{
+  body{background:#fff !important;color:#000 !important;}
+  .header-controls .icon-btn, .header-controls .btn, .no-print{display:none !important;}
+  .card,.kpi,.resumo-card,.total-card,.ing-card,.lucro-card,.socio-card,.acerto-summary{
+    background:#fff !important;border:1px solid #ccc !important;color:#000 !important;box-shadow:none !important;
+  }
+  thead th{background:#f0f0f0 !important;color:#333 !important;}
+  tbody td{color:#000 !important;}
+  .val,.mono{color:#000 !important;}
+}
+
+/* empty state */
+.empty-hint{color:var(--text-dim);font-size:13px;text-align:center;padding:20px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="eyebrow">Sistema Financeiro</div>
+    <div class="logo">DEEP <span>DASH</span></div>
+    <p class="login-sub">Acesso restrito aos sócios</p>
+    <form id="loginForm">
+      <input type="password" id="loginPassword" placeholder="Senha" autocomplete="current-password" required>
+      <button type="submit" class="btn btn-primary" id="loginSubmit">Entrar</button>
+    </form>
+    <div class="login-error" id="loginError" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- MODAL GENÉRICO (substitui prompt()/confirm() nativos) -->
+<div class="modal-overlay no-print" id="modalOverlay">
+  <div class="modal-card">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-message" id="modalMessage"></div>
+    <input type="text" class="modal-input" id="modalInput" style="display:none;">
+    <div class="modal-actions">
+      <button class="btn" id="modalCancel">Cancelar</button>
+      <button class="btn btn-primary" id="modalConfirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none;">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="brand">
+      <div class="eyebrow">Sistema Financeiro</div>
+      <div class="logo">DEEP <span>DASH</span></div>
+    </div>
+    <div class="header-controls no-print">
+      <select id="edicaoSelect" class="edicao-select"></select>
+      <button class="icon-btn" id="novaEdicaoBtn" title="Nova edição">＋</button>
+      <button class="icon-btn" id="deleteEdicaoBtn" title="Excluir edição">🗑</button>
+      <span class="sync-indicator" id="syncIndicator">✅ salvo</span>
+      <button class="btn" id="logoutBtn" title="Sair">Sair</button>
+      <button class="btn btn-primary" id="pdfBtn">Relatório PDF</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="conflict-banner no-print" id="conflictBanner">
+    <span>⚠️ Outro sócio salvou uma atualização enquanto você editava. Suas últimas alterações ainda não foram gravadas.</span>
+    <div class="conflict-actions">
+      <button class="btn" id="conflictReload">Recarregar (descarta minhas edições)</button>
+      <button class="btn btn-primary" id="conflictOverride">Manter minhas edições</button>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi neg">
+      <div class="label">Despesas Reais</div>
+      <div class="val mono" id="kpiDespesas">R$ 0,00</div>
+    </div>
+    <div class="kpi neg">
+      <div class="label">Em Aberto</div>
+      <div class="val mono" id="kpiAberto">R$ 0,00</div>
+    </div>
+    <div class="kpi pos">
+      <div class="label">Entradas</div>
+      <div class="val mono" id="kpiEntradas">R$ 0,00</div>
+    </div>
+    <div class="kpi" id="kpiSaldoBox" title="Entradas menos o valor total das despesas reais, incluindo o que ainda está em aberto">
+      <div class="label">Saldo Real</div>
+      <div class="val mono" id="kpiSaldo">R$ 0,00</div>
+      <div class="kpi-hint">já desconta o que está em aberto</div>
+    </div>
+  </div>
+
+  <div class="accordion-controls no-print" id="accordionControls">
+    <button class="accordion-toggle-all" id="expandAllBtn">Expandir tudo</button>
+    <button class="accordion-toggle-all" id="collapseAllBtn">Recolher tudo</button>
+  </div>
+
+  <!-- DESPESAS -->
+  <div class="section" data-section-id="despesas">
+    <button class="section-title" data-toggle-section><span class="dot"></span> Despesas <span class="section-chevron">⌄</span></button>
+    <div class="section-body">
+    <div class="desp-grid">
+      <div class="card">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Despesas Reais</div>
+        <div class="table-scroll">
+          <table class="fin-table">
+            <thead><tr>
+              <th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Pago</th><th></th>
+            </tr></thead>
+            <tbody id="despReaisBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="addDespReal">+ Adicionar Despesa Real</button>
+      </div>
+
+      <div class="card amber-tinted">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Provisões</div>
+        <div class="table-scroll">
+          <table class="fin-table">
+            <thead><tr>
+              <th>Categoria</th><th>Descrição</th><th>Valor</th><th></th>
+            </tr></thead>
+            <tbody id="despProvBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="addDespProv">+ Adicionar Provisão</button>
+      </div>
+    </div>
+
+    <div class="desp-totals">
+      <div class="total-card">
+        <div class="label">Total Reais</div>
+        <div class="val mono" id="totReais">R$ 0,00</div>
+        <div class="sub mono" id="totAberto">+ R$ 0,00 em aberto</div>
+      </div>
+      <div class="total-card amber">
+        <div class="label">Provisões</div>
+        <div class="val mono" id="totProv">R$ 0,00</div>
+      </div>
+      <div class="total-card">
+        <div class="label">Total Geral</div>
+        <div class="val mono" id="totGeral">R$ 0,00</div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- INGRESSOS -->
+  <div class="section" data-section-id="ingressos">
+    <button class="section-title" data-toggle-section><span class="dot"></span> Ingressos <span class="section-chevron">⌄</span></button>
+    <div class="section-body">
+    <div class="ing-grid" id="ingGrid"></div>
+    </div>
+  </div>
+
+  <!-- LOWER GRID: SOCIOS + RECEITAS -->
+  <div class="lower-grid">
+    <div class="section" data-section-id="socios">
+      <button class="section-title" data-toggle-section><span class="dot"></span> Investimentos <span class="section-chevron">⌄</span></button>
+      <div class="section-body">
+      <div id="sociosContainer"></div>
+      </div>
+    </div>
+
+    <div class="section" data-section-id="receitas">
+      <button class="section-title" data-toggle-section><span class="dot"></span> Receitas <span class="section-chevron">⌄</span></button>
+      <div class="section-body">
+      <div class="card">
+        <div class="table-scroll">
+          <table class="fin-table">
+            <thead><tr>
+              <th>Categoria</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Recebido</th><th></th>
+            </tr></thead>
+            <tbody id="recBody"></tbody>
+          </table>
+        </div>
+        <button class="add-row-btn" id="addRec">+ Adicionar Entrada</button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESUMO FINANCEIRO -->
+  <div class="section" data-section-id="resumo">
+    <button class="section-title" data-toggle-section><span class="dot"></span> Resumo Financeiro <span class="section-chevron">⌄</span></button>
+    <div class="section-body">
+    <div class="resumo-grid">
+      <div class="resumo-card pos">
+        <div class="label">Receita Total</div>
+        <div class="val mono" id="resReceita">R$ 0,00</div>
+      </div>
+      <div class="resumo-card neg">
+        <div class="label">Total Despesas Reais</div>
+        <div class="val mono" id="resDespesas">R$ 0,00</div>
+      </div>
+      <div class="resumo-card" id="resSaldoCard" title="Entradas menos o valor total das despesas reais, incluindo o que ainda está em aberto">
+        <div class="label">Saldo Real</div>
+        <div class="val mono" id="resSaldo">R$ 0,00</div>
+        <div class="kpi-hint">já desconta o que está em aberto</div>
+      </div>
+      <div class="resumo-card amber">
+        <div class="label">Total Provisões</div>
+        <div class="val mono" id="resProv">R$ 0,00</div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- ACERTO FINAL -->
+  <div class="section" data-section-id="acerto">
+    <button class="section-title" data-toggle-section><span class="dot"></span> Acerto Final <span class="section-chevron">⌄</span></button>
+    <div class="section-body">
+    <div class="acerto-summary">
+      <div class="acerto-line"><span class="label">Receita Disponível</span><span class="val mono" id="acReceita">R$ 0,00</span></div>
+      <div class="acerto-op">−</div>
+      <div class="acerto-line"><span class="label">Total a Devolver</span><span class="val mono" id="acDevolver">R$ 0,00</span></div>
+      <div class="acerto-op">=</div>
+      <div class="acerto-line"><span class="label">Lucro a Dividir (÷3)</span><span class="val mono" id="acLucro">R$ 0,00</span></div>
+    </div>
+    <div class="card">
+      <div class="table-scroll">
+        <table class="fin-table">
+          <thead><tr>
+            <th>Sócio</th><th>Investimento</th><th>Devolução</th><th>Status</th><th>Parte do Lucro</th><th>Status</th><th>Total a Receber</th>
+          </tr></thead>
+          <tbody id="acertoBody"></tbody>
+          <tfoot>
+            <tr style="border-top:1px solid var(--border-strong);font-weight:600;">
+              <td class="mono acerto-name">Total</td>
+              <td class="mono" data-label="Investimento" id="acFootInvest">R$ 0,00</td>
+              <td class="mono" data-label="Devolução" id="acFootDev">R$ 0,00</td>
+              <td></td>
+              <td class="mono" data-label="Parte do Lucro" id="acFootLucro">R$ 0,00</td>
+              <td></td>
+              <td class="mono" data-label="Total a Receber" id="acFootTotal">R$ 0,00</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <!-- LUCRATIVIDADE -->
+  <div class="section" data-section-id="lucratividade">
+    <button class="section-title" data-toggle-section><span class="dot"></span> Lucratividade <span class="section-chevron">⌄</span></button>
+    <div class="section-body">
+    <div class="lucro-hero card">
+      <div class="label">Lucro Total</div>
+      <div class="val mono" id="lucroTotalVal">R$ 0,00</div>
+    </div>
+    <div class="lucro-grid" id="lucroGrid"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   DEEP DASH — Sistema Financeiro
+   ========================================================= */
+
+const SUPA_URL = 'https://pgryqbftrvqlshsfdntt.supabase.co';
+const SUPA_KEY = 'sb_publishable_LYIHOK7OZDLAClGZg6LjNw_ZxKw1gQh';
+const supa = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// login único compartilhado pelos 3 sócios — a senha de verdade fica só no Supabase Auth,
+// esse e-mail é só o "usuário", não é segredo.
+const SHARED_LOGIN_EMAIL = 'deepdashmusic@gmail.com';
+
+const CATEGORIAS_DESPESA = ['Artista / DJ','Fotógrafo / Vídeo','Espaço / Local','Bar / Bebidas','Segurança','Marketing','Outros'];
+const CATEGORIAS_RECEITA = ['Patrocínio','Permuta / Parceria','Bar / Consumação','Merchandising','Outros'];
+
+const STATUS_DESPESA = [
+  {v:'pago', label:'Pago'},
+  {v:'parcial', label:'Parcial'},
+  {v:'aberto', label:'Em Aberto'}
+];
+const STATUS_RECEITA = [
+  {v:'recebido', label:'Recebido'},
+  {v:'parcial', label:'Parcial'},
+  {v:'pendente', label:'Pendente'}
+];
+const STATUS_ACERTO = [
+  {v:'pago', label:'Pago'},
+  {v:'pendente', label:'Pendente'}
+];
+
+function defaultState(){
+  return {
+    desp: [],
+    rec: [],
+    socios: [
+      { name:'Fernando Sales', value:'', items:[] },
+      { name:'Leandro Fernandes', value:'', items:[] },
+      { name:'Wesley Kaiki', value:'', items:[] }
+    ],
+    ing: [
+      { id:'ing-online', label:'Ingresso Online', tipo:'online', qtd:'', unit:'', taxa:'', notas:'' },
+      { id:'ing-porta',  label:'Venda na Porta',  tipo:'porta',  qtd:'', unit:'', taxa:'', notas:'' },
+      { id:'ing-vip',    label:'VIP / Lista',     tipo:'vip',    qtd:'', unit:'', taxa:'', notas:'' }
+    ],
+    acerto: {
+      "0": { dev:'', lucro:'' },
+      "1": { dev:'', lucro:'' },
+      "2": { dev:'', lucro:'' }
+    }
+  };
+}
+
+let state = defaultState();
+let edicoes = [];
+let currentEdicaoId = null;
+let lastKnownUpdatedAt = null; // usado para detectar se outro sócio salvou por cima
+let saveTimer = null;
+let suppressSave = false;
+
+/* ---------------- helpers ---------------- */
+function num(v){
+  const n = parseFloat(String(v).replace(',','.'));
+  return isNaN(n) ? 0 : n;
+}
+function brl(n){
+  return (n||0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+}
+function uid(){ return Date.now() + Math.floor(Math.random()*1000); }
+
+function normalize(data){
+  const s = Object.assign(defaultState(), data || {});
+  s.desp = (s.desp || []).map(d => {
+    // migração: formato antigo guardava "quanto falta" (aberto); o novo guarda "quanto já foi pago" (pago)
+    let pago = d.pago;
+    if (pago === undefined && d.aberto !== undefined && d.aberto !== ''){
+      pago = num(d.value) - num(d.aberto);
+    }
+    return {
+      id: d.id || uid(),
+      tipo: d.tipo === 'conf' ? 'real' : (d.tipo === 'prev' ? 'prov' : (d.tipo || 'real')),
+      cat: d.cat || CATEGORIAS_DESPESA[0],
+      name: d.name || '',
+      value: d.value ?? '',
+      status: d.status || 'pago',
+      pago: pago ?? ''
+    };
+  });
+  s.rec = (s.rec || []).map(r => {
+    // migração: formato antigo guardava "quanto falta receber" (pendente); o novo guarda "quanto já recebeu" (recebido)
+    let recebido = r.recebido;
+    if (recebido === undefined && r.pendente !== undefined && r.pendente !== ''){
+      recebido = num(r.value) - num(r.pendente);
+    }
+    return {
+      id: r.id || uid(),
+      cat: r.cat || '',
+      name: r.name || '',
+      value: r.value ?? '',
+      status: r.status || 'pendente',
+      recebido: recebido ?? ''
+    };
+  });
+  const defSocios = defaultState().socios;
+  s.socios = [0,1,2].map(i => {
+    const src = (s.socios && s.socios[i]) || {};
+    let items = (src.items || []).map(it => ({ id: it.id || uid(), desc: it.desc || '', value: it.value ?? '' }));
+    // migração: registros antigos guardavam um valor único sem descrição — vira o primeiro investimento
+    if (items.length === 0 && src.value !== undefined && src.value !== '' && num(src.value) !== 0){
+      items = [{ id: uid(), desc: '', value: src.value }];
+    }
+    return {
+      name: src.name || defSocios[i].name,
+      value: src.value ?? '',
+      items
+    };
+  });
+  const defIng = defaultState().ing;
+  s.ing = defIng.map(defItem => {
+    const src = (s.ing || []).find(x => x.id === defItem.id) || {};
+    return Object.assign({}, defItem, src);
+  });
+  s.acerto = {
+    "0": Object.assign({dev:'', lucro:''}, (s.acerto && s.acerto["0"]) || {}),
+    "1": Object.assign({dev:'', lucro:''}, (s.acerto && s.acerto["1"]) || {}),
+    "2": Object.assign({dev:'', lucro:''}, (s.acerto && s.acerto["2"]) || {})
+  };
+  return s;
+}
+
+/* ---------------- calculations ---------------- */
+function calcIngLiquido(ing){
+  const qtd = num(ing.qtd), unit = num(ing.unit), taxa = num(ing.taxa);
+  if (ing.tipo === 'online') return qtd * unit * (1 - taxa/100);
+  if (ing.tipo === 'porta') return qtd * unit;
+  if (ing.tipo === 'vip') return unit ? qtd * unit : 0;
+  return 0;
+}
+
+function socioTotal(s){
+  if (s.items && s.items.length > 0){
+    return s.items.reduce((acc,it) => acc + num(it.value), 0);
+  }
+  return num(s.value);
+}
+
+function calcAll(){
+  const ingLiquidoTotal = state.ing.reduce((acc,i) => acc + calcIngLiquido(i), 0);
+  const recConfirmadas = state.rec.reduce((acc,r) => {
+    if (r.status === 'recebido') return acc + num(r.value);
+    if (r.status === 'parcial') return acc + Math.min(num(r.value), num(r.recebido));
+    return acc; // pendente: nada entrou ainda
+  }, 0);
+  const recPendente = state.rec.reduce((acc,r) => {
+    if (r.status === 'pendente') return acc + num(r.value);
+    if (r.status === 'parcial') return acc + Math.max(0, num(r.value) - num(r.recebido));
+    return acc;
+  }, 0);
+  const totalEntradas = ingLiquidoTotal + recConfirmadas;
+
+  const dReal = state.desp.filter(d => d.tipo === 'real').reduce((acc,d) => acc + num(d.value), 0);
+  const abertoReal = state.desp.filter(d => d.tipo === 'real').reduce((acc,d) => {
+    if (d.status === 'aberto') return acc + num(d.value);
+    if (d.status === 'parcial') return acc + Math.max(0, num(d.value) - num(d.pago));
+    return acc;
+  }, 0);
+  const dProv = state.desp.filter(d => d.tipo === 'prov').reduce((acc,d) => acc + num(d.value), 0);
+
+  const saldoReal = totalEntradas - dReal;
+
+  const totalInvest = state.socios.reduce((acc,s) => acc + socioTotal(s), 0);
+  const lucroAcerto = saldoReal - totalInvest;
+  const lucroPorSocio = lucroAcerto / 3;
+
+  return { ingLiquidoTotal, recConfirmadas, recPendente, totalEntradas, dReal, abertoReal, dProv, saldoReal, totalInvest, lucroAcerto, lucroPorSocio };
+}
+
+/* ---------------- render: header / KPIs ---------------- */
+function renderKPIs(c){
+  document.getElementById('kpiDespesas').textContent = brl(c.dReal);
+  document.getElementById('kpiAberto').textContent = brl(c.abertoReal);
+  document.getElementById('kpiEntradas').textContent = brl(c.totalEntradas);
+  document.getElementById('kpiSaldo').textContent = brl(c.saldoReal);
+  const box = document.getElementById('kpiSaldoBox');
+  box.classList.remove('pos','neg');
+  box.classList.add(c.saldoReal >= 0 ? 'pos' : 'neg');
+}
+
+/* ---------------- render: despesas ---------------- */
+function buildCategoryOptions(list, selected){
+  // preserva valores antigos/digitados livremente que não estão na lista padrão
+  const opts = (selected && !list.includes(selected)) ? [selected, ...list] : list;
+  return opts.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+}
+function catOptions(selected){
+  return buildCategoryOptions(CATEGORIAS_DESPESA, selected);
+}
+function catOptionsReceita(selected){
+  return buildCategoryOptions(CATEGORIAS_RECEITA, selected);
+}
+function statusOptionsHTML(list, selected){
+  return list.map(s => `<option value="${s.v}" ${s.v===selected?'selected':''}>${s.label}</option>`).join('');
+}
+
+function renderDespesas(){
+  const reaisBody = document.getElementById('despReaisBody');
+  const provBody = document.getElementById('despProvBody');
+  const reais = state.desp.filter(d => d.tipo === 'real');
+  const provs = state.desp.filter(d => d.tipo === 'prov');
+
+  reaisBody.innerHTML = reais.length ? reais.map(d => `
+    <tr data-id="${d.id}" data-status="${d.status}">
+      <td data-label="Categoria"><select data-field="cat">${catOptions(d.cat)}</select></td>
+      <td data-label="Descrição"><input type="text" data-field="name" value="${escapeHtml(d.name)}" placeholder="Descrição"></td>
+      <td data-label="Valor"><input type="number" inputmode="decimal" data-field="value" value="${d.value}" placeholder="0,00" step="0.01"></td>
+      <td data-label="Status"><select data-field="status">${statusOptionsHTML(STATUS_DESPESA, d.status)}</select></td>
+      <td data-label="Pago">${d.status === 'parcial' ? `
+        <div class="pago-cell">
+          <input type="number" inputmode="decimal" data-field="pago" value="${d.pago}" placeholder="0,00" step="0.01">
+          <div class="falta-hint" data-falta-hint>Falta ${brl(Math.max(0, num(d.value) - num(d.pago)))}</div>
+        </div>` : ''}</td>
+      <td data-label=""><button class="row-remove" data-action="remove-desp">✕</button></td>
+    </tr>`).join('') : `<tr><td colspan="6" class="empty-hint">Nenhuma despesa real</td></tr>`;
+
+  provBody.innerHTML = provs.length ? provs.map(d => `
+    <tr data-id="${d.id}">
+      <td data-label="Categoria"><select data-field="cat">${catOptions(d.cat)}</select></td>
+      <td data-label="Descrição"><input type="text" data-field="name" value="${escapeHtml(d.name)}" placeholder="Descrição"></td>
+      <td data-label="Valor"><input type="number" inputmode="decimal" data-field="value" value="${d.value}" placeholder="0,00" step="0.01"></td>
+      <td data-label=""><button class="row-remove" data-action="remove-desp">✕</button></td>
+    </tr>`).join('') : `<tr><td colspan="4" class="empty-hint">Nenhuma provisão</td></tr>`;
+
+  attachDespListeners();
+}
+
+function attachDespListeners(){
+  document.querySelectorAll('#despReaisBody tr, #despProvBody tr').forEach(tr => {
+    const id = Number(tr.dataset.id);
+    if (!id) return;
+    tr.querySelectorAll('[data-field]').forEach(el => {
+      el.addEventListener('input', () => {
+        const item = state.desp.find(d => d.id === id);
+        if (!item) return;
+        item[el.dataset.field] = el.value;
+        if (el.dataset.field === 'status'){
+          if (item.status !== 'parcial') item.pago = ''; // limpa valor "fantasma"
+          renderDespesas();
+        } else if (el.dataset.field === 'pago' && item.status === 'parcial' && num(item.value) > 0 && num(item.pago) >= num(item.value)){
+          // pagamento completo — muda automaticamente para "Pago"
+          item.status = 'pago';
+          item.pago = '';
+          renderDespesas();
+        } else if ((el.dataset.field === 'pago' || el.dataset.field === 'value') && item.status === 'parcial'){
+          const hint = tr.querySelector('[data-falta-hint]');
+          if (hint) hint.textContent = `Falta ${brl(Math.max(0, num(item.value) - num(item.pago)))}`;
+        }
+        recalcAndSave();
+      });
+      el.addEventListener('change', () => {
+        const item = state.desp.find(d => d.id === id);
+        if (!item) return;
+        item[el.dataset.field] = el.value;
+        recalcAndSave();
+      });
+    });
+    const rm = tr.querySelector('[data-action="remove-desp"]');
+    if (rm) rm.addEventListener('click', async () => {
+      const item = state.desp.find(d => d.id === id);
+      const nome = item && item.name ? `"${item.name}"` : 'essa despesa';
+      const tipoLabel = item && item.tipo === 'prov' ? 'provisão' : 'despesa';
+      const ok = await openModal({ title:`Excluir ${tipoLabel}`, message:`Remover ${nome}? Essa ação não pode ser desfeita.`, confirmLabel:'Excluir', danger:true });
+      if (!ok) return;
+      state.desp = state.desp.filter(d => d.id !== id);
+      renderDespesas();
+      recalcAndSave();
+    });
+  });
+}
+
+/* ---------------- render: ingressos ---------------- */
+function renderIngressos(){
+  const grid = document.getElementById('ingGrid');
+  grid.innerHTML = state.ing.map(ing => {
+    const liquido = calcIngLiquido(ing);
+    const showTaxa = ing.tipo === 'online';
+    return `
+    <div class="ing-card" data-id="${ing.id}">
+      <h3>${ing.label}</h3>
+      <div class="ing-field">
+        <label>Quantidade</label>
+        <input type="number" inputmode="numeric" data-field="qtd" value="${ing.qtd}" placeholder="0">
+      </div>
+      <div class="ing-field">
+        <label>Valor Unitário</label>
+        <input type="number" inputmode="decimal" data-field="unit" value="${ing.unit}" placeholder="0,00" step="0.01">
+      </div>
+      ${showTaxa ? `
+      <div class="ing-field">
+        <label>Taxa (%)</label>
+        <input type="number" inputmode="decimal" data-field="taxa" value="${ing.taxa}" placeholder="0" step="0.1">
+      </div>` : ''}
+      <div class="ing-liquido">
+        <span class="label">Líquido</span>
+        <span class="val mono">${brl(liquido)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.ing-card').forEach(card => {
+    const id = card.dataset.id;
+    card.querySelectorAll('[data-field]').forEach(el => {
+      el.addEventListener('input', () => {
+        const item = state.ing.find(i => i.id === id);
+        item[el.dataset.field] = el.value;
+        const liquidoEl = card.querySelector('.ing-liquido .val');
+        liquidoEl.textContent = brl(calcIngLiquido(item));
+        recalcAndSave();
+      });
+    });
+  });
+}
+
+/* ---------------- render: socios ---------------- */
+function renderSocios(){
+  const container = document.getElementById('sociosContainer');
+  container.innerHTML = state.socios.map((s, idx) => {
+    const total = socioTotal(s);
+    const c = calcAll();
+    const roi = total > 0 ? (c.lucroPorSocio / total * 100) : 0;
+    const items = s.items || [];
+    return `
+    <div class="socio-card" data-idx="${idx}">
+      <div class="socio-head">
+        <input type="text" class="socio-name" data-field="name" value="${escapeHtml(s.name)}">
+      </div>
+      <div class="socio-total-row">
+        <div>
+          <div class="label">Total Investido</div>
+          <div class="socio-total-val mono">${brl(total)}</div>
+        </div>
+        <span class="roi-badge ${roi >= 0 ? 'pos' : 'neg'}">${roi.toFixed(1)}% ROI</span>
+      </div>
+      ${items.length ? items.map(it => `
+        <div class="socio-item-row" data-item-id="${it.id}">
+          <input type="text" data-field="desc" value="${escapeHtml(it.desc)}" placeholder="Ex: Pagamento DJ, Sound, Espaço...">
+          <input type="number" inputmode="decimal" data-field="value" value="${it.value}" placeholder="0,00" step="0.01">
+          <button class="row-remove" data-action="remove-item">✕</button>
+        </div>`).join('') : `<div class="socio-items-empty">Nenhum investimento registrado ainda</div>`}
+      <button class="add-item-btn" data-action="add-item">+ Adicionar Investimento</button>
+    </div>`;
+  }).join('');
+
+  attachSocioListeners();
+}
+
+function attachSocioListeners(){
+  document.querySelectorAll('.socio-card').forEach(card => {
+    const idx = Number(card.dataset.idx);
+    const s = state.socios[idx];
+
+    const nameInput = card.querySelector('[data-field="name"]');
+    nameInput.addEventListener('input', () => { s.name = nameInput.value; recalcAndSave(); });
+
+    card.querySelectorAll('.socio-item-row').forEach(row => {
+      const itemId = Number(row.dataset.itemId);
+      row.querySelectorAll('[data-field]').forEach(el => {
+        el.addEventListener('input', () => {
+          const item = s.items.find(it => it.id === itemId);
+          item[el.dataset.field] = el.value;
+          recalcAndSave(true);
+        });
+      });
+      row.querySelector('[data-action="remove-item"]').addEventListener('click', async () => {
+        const item = s.items.find(it => it.id === itemId);
+        const desc = item && item.desc ? `"${item.desc}"` : 'esse investimento';
+        const ok = await openModal({ title:'Excluir investimento', message:`Remover ${desc} de ${s.name}? Essa ação não pode ser desfeita.`, confirmLabel:'Excluir', danger:true });
+        if (!ok) return;
+        s.items = s.items.filter(it => it.id !== itemId);
+        renderSocios();
+        recalcAndSave();
+      });
+    });
+
+    card.querySelector('[data-action="add-item"]').addEventListener('click', () => {
+      s.items = s.items || [];
+      s.items.push({ id: uid(), desc:'', value:'' });
+      renderSocios();
+      const newCard = document.querySelector(`.socio-card[data-idx="${idx}"]`);
+      if (newCard){
+        const rows = newCard.querySelectorAll('.socio-item-row');
+        const lastRow = rows[rows.length - 1];
+        if (lastRow) lastRow.querySelector('[data-field="desc"]').focus();
+      }
+      recalcAndSave();
+    });
+  });
+}
+
+function updateSocioBadges(){
+  const c = calcAll();
+  document.querySelectorAll('.socio-card').forEach(card => {
+    const idx = Number(card.dataset.idx);
+    const s = state.socios[idx];
+    if (!s) return;
+    const total = socioTotal(s);
+    const roi = total > 0 ? (c.lucroPorSocio / total * 100) : 0;
+    const totalEl = card.querySelector('.socio-total-val');
+    if (totalEl) totalEl.textContent = brl(total);
+    const roiEl = card.querySelector('.roi-badge');
+    if (roiEl){
+      roiEl.textContent = `${roi.toFixed(1)}% ROI`;
+      roiEl.classList.toggle('pos', roi >= 0);
+      roiEl.classList.toggle('neg', roi < 0);
+    }
+  });
+}
+
+/* ---------------- render: receitas ---------------- */
+function renderReceitas(){
+  const body = document.getElementById('recBody');
+  body.innerHTML = state.rec.length ? state.rec.map(r => `
+    <tr data-id="${r.id}" data-status="${r.status}">
+      <td data-label="Categoria"><select data-field="cat">${catOptionsReceita(r.cat)}</select></td>
+      <td data-label="Descrição"><input type="text" data-field="name" value="${escapeHtml(r.name)}" placeholder="Descrição"></td>
+      <td data-label="Valor"><input type="number" inputmode="decimal" data-field="value" value="${r.value}" placeholder="0,00" step="0.01"></td>
+      <td data-label="Status"><select data-field="status">${statusOptionsHTML(STATUS_RECEITA, r.status)}</select></td>
+      <td data-label="Recebido">${r.status === 'parcial' ? `
+        <div class="pago-cell">
+          <input type="number" inputmode="decimal" data-field="recebido" value="${r.recebido}" placeholder="0,00" step="0.01">
+          <div class="falta-hint" data-falta-hint>Falta ${brl(Math.max(0, num(r.value) - num(r.recebido)))}</div>
+        </div>` : ''}</td>
+      <td data-label=""><button class="row-remove" data-action="remove-rec">✕</button></td>
+    </tr>`).join('') : `<tr><td colspan="6" class="empty-hint">Nenhuma entrada</td></tr>`;
+
+  body.querySelectorAll('tr[data-id]').forEach(tr => {
+    const id = Number(tr.dataset.id);
+    tr.querySelectorAll('[data-field]').forEach(el => {
+      el.addEventListener('input', () => {
+        const item = state.rec.find(r => r.id === id);
+        if (!item) return;
+        item[el.dataset.field] = el.value;
+        if (el.dataset.field === 'status'){
+          if (item.status !== 'parcial') item.recebido = ''; // limpa valor "fantasma"
+          renderReceitas();
+        } else if (el.dataset.field === 'recebido' && item.status === 'parcial' && num(item.value) > 0 && num(item.recebido) >= num(item.value)){
+          // recebimento completo — muda automaticamente para "Recebido"
+          item.status = 'recebido';
+          item.recebido = '';
+          renderReceitas();
+        } else if ((el.dataset.field === 'recebido' || el.dataset.field === 'value') && item.status === 'parcial'){
+          const hint = tr.querySelector('[data-falta-hint]');
+          if (hint) hint.textContent = `Falta ${brl(Math.max(0, num(item.value) - num(item.recebido)))}`;
+        }
+        recalcAndSave();
+      });
+    });
+    tr.querySelector('[data-action="remove-rec"]').addEventListener('click', async () => {
+      const item = state.rec.find(r => r.id === id);
+      const nome = item && item.name ? `"${item.name}"` : 'essa entrada';
+      const ok = await openModal({ title:'Excluir entrada', message:`Remover ${nome}? Essa ação não pode ser desfeita.`, confirmLabel:'Excluir', danger:true });
+      if (!ok) return;
+      state.rec = state.rec.filter(r => r.id !== id);
+      renderReceitas();
+      recalcAndSave();
+    });
+  });
+}
+
+/* ---------------- render: totals / resumo / acerto / lucratividade ---------------- */
+function renderTotals(c){
+  document.getElementById('totReais').textContent = brl(c.dReal);
+  document.getElementById('totAberto').textContent = `+ ${brl(c.abertoReal)} em aberto`;
+  document.getElementById('totProv').textContent = brl(c.dProv);
+  document.getElementById('totGeral').textContent = brl(c.dReal + c.dProv);
+
+  document.getElementById('resReceita').textContent = brl(c.totalEntradas);
+  document.getElementById('resDespesas').textContent = brl(c.dReal);
+  document.getElementById('resSaldo').textContent = brl(c.saldoReal);
+  document.getElementById('resProv').textContent = brl(c.dProv);
+  const resSaldoCard = document.getElementById('resSaldoCard');
+  resSaldoCard.classList.remove('pos','neg');
+  resSaldoCard.classList.add(c.saldoReal >= 0 ? 'pos' : 'neg');
+}
+
+function renderAcerto(c){
+  document.getElementById('acReceita').textContent = brl(c.saldoReal);
+  document.getElementById('acDevolver').textContent = brl(c.totalInvest);
+  document.getElementById('acLucro').textContent = brl(c.lucroAcerto);
+
+  const body = document.getElementById('acertoBody');
+  let footInvest = 0, footDev = 0, footLucro = 0, footTotal = 0;
+
+  body.innerHTML = state.socios.map((s, idx) => {
+    const invest = socioTotal(s);
+    const acertoRow = state.acerto[String(idx)] || {dev:'',lucro:''};
+    const lucroValor = c.lucroPorSocio;
+    const totalReceber = invest + lucroValor;
+    footInvest += invest; footDev += invest; footLucro += lucroValor; footTotal += totalReceber;
+    return `
+    <tr data-idx="${idx}">
+      <td class="acerto-name">${escapeHtml(s.name)}</td>
+      <td class="mono" data-label="Investimento">${brl(invest)}</td>
+      <td class="mono" data-label="Devolução">${brl(invest)}</td>
+      <td data-label="Status Devolução"><button class="status-pill ${acertoRow.dev || 'pendente'}" data-field="dev">${statusLabel(STATUS_ACERTO, acertoRow.dev || 'pendente')}</button></td>
+      <td class="mono" data-label="Parte do Lucro">${brl(lucroValor)}</td>
+      <td data-label="Status Lucro"><button class="status-pill ${acertoRow.lucro || 'pendente'}" data-field="lucro">${statusLabel(STATUS_ACERTO, acertoRow.lucro || 'pendente')}</button></td>
+      <td class="mono" data-label="Total a Receber">${brl(totalReceber)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('acFootInvest').textContent = brl(footInvest);
+  document.getElementById('acFootDev').textContent = brl(footDev);
+  document.getElementById('acFootLucro').textContent = brl(footLucro);
+  document.getElementById('acFootTotal').textContent = brl(footTotal);
+
+  body.querySelectorAll('button.status-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = btn.closest('tr').dataset.idx;
+      const field = btn.dataset.field;
+      const cur = state.acerto[idx][field] || 'pendente';
+      const next = cur === 'pago' ? 'pendente' : 'pago';
+      state.acerto[idx][field] = next;
+      renderAcerto(calcAll());
+      recalcAndSave(true);
+    });
+  });
+}
+function statusLabel(list, v){
+  const found = list.find(s => s.v === v);
+  return found ? found.label : v;
+}
+
+function renderLucratividade(c){
+  const el = document.getElementById('lucroTotalVal');
+  el.textContent = brl(c.lucroAcerto);
+  el.className = 'val mono ' + (c.lucroAcerto >= 0 ? 'pos' : 'neg');
+
+  const grid = document.getElementById('lucroGrid');
+  grid.innerHTML = state.socios.map(s => {
+    const invest = socioTotal(s);
+    const roi = invest > 0 ? (c.lucroPorSocio / invest * 100) : 0;
+    return `
+    <div class="lucro-card">
+      <div class="name">${escapeHtml(s.name)}</div>
+      <div class="row"><span>Parte do lucro</span><span class="v">${brl(c.lucroPorSocio)}</span></div>
+      <div class="row"><span>Investido</span><span class="v">${brl(invest)}</span></div>
+      <div class="roi ${roi >= 0 ? 'pos' : 'neg'}">${roi.toFixed(1)}% ROI</div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(str){
+  return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ---------------- modal genérico (substitui prompt()/confirm() nativos) ----------------
+   Uso: const ok = await openModal({title, message, confirmLabel, danger});
+        const texto = await openModal({title, withInput:true, inputPlaceholder, confirmLabel}); */
+let modalResolve = null;
+
+function openModal({ title, message, withInput, inputPlaceholder, inputValue, confirmLabel, danger } = {}){
+  return new Promise((resolve) => {
+    modalResolve = resolve;
+    document.getElementById('modalTitle').textContent = title || '';
+    const msgEl = document.getElementById('modalMessage');
+    msgEl.textContent = message || '';
+    msgEl.style.display = message ? 'block' : 'none';
+
+    const input = document.getElementById('modalInput');
+    if (withInput){
+      input.style.display = 'block';
+      input.value = inputValue || '';
+      input.placeholder = inputPlaceholder || '';
+    } else {
+      input.style.display = 'none';
+    }
+
+    const confirmBtn = document.getElementById('modalConfirm');
+    confirmBtn.textContent = confirmLabel || 'Confirmar';
+    confirmBtn.classList.toggle('btn-danger', !!danger);
+    confirmBtn.classList.toggle('btn-primary', !danger);
+
+    document.getElementById('modalOverlay').style.display = 'flex';
+    setTimeout(() => (withInput ? input : confirmBtn).focus(), 50);
+  });
+}
+
+function closeModal(result){
+  document.getElementById('modalOverlay').style.display = 'none';
+  if (modalResolve){ modalResolve(result); modalResolve = null; }
+}
+
+document.getElementById('modalCancel').addEventListener('click', () => closeModal(null));
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'modalOverlay') closeModal(null);
+});
+document.getElementById('modalConfirm').addEventListener('click', () => {
+  const input = document.getElementById('modalInput');
+  const result = input.style.display !== 'none' ? input.value.trim() : true;
+  closeModal(result);
+});
+document.getElementById('modalInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter'){ e.preventDefault(); document.getElementById('modalConfirm').click(); }
+  if (e.key === 'Escape') closeModal(null);
+});
+
+/* ---------------- master render ---------------- */
+function renderAll(){
+  const c = calcAll();
+  renderKPIs(c);
+  renderDespesas();
+  renderIngressos();
+  renderSocios();
+  renderReceitas();
+  renderTotals(c);
+  renderAcerto(c);
+  renderLucratividade(c);
+}
+
+function recalcAndSave(skipFullRerender){
+  const c = calcAll();
+  renderKPIs(c);
+  renderTotals(c);
+  renderAcerto(c);
+  renderLucratividade(c);
+  updateSocioBadges();
+  scheduleSave();
+}
+
+/* ---------------- add row handlers ---------------- */
+document.getElementById('addDespReal').addEventListener('click', () => {
+  state.desp.push({ id: uid(), tipo:'real', cat: CATEGORIAS_DESPESA[0], name:'', value:'', status:'pago', pago:'' });
+  renderDespesas();
+  recalcAndSave();
+});
+document.getElementById('addDespProv').addEventListener('click', () => {
+  state.desp.push({ id: uid(), tipo:'prov', cat: CATEGORIAS_DESPESA[0], name:'', value:'', status:'pago', pago:'' });
+  renderDespesas();
+  recalcAndSave();
+});
+document.getElementById('addRec').addEventListener('click', () => {
+  state.rec.push({ id: uid(), cat: CATEGORIAS_RECEITA[0], name:'', value:'', status:'pendente', recebido:'' });
+  renderReceitas();
+  recalcAndSave();
+});
+
+/* ---------------- PDF ---------------- */
+document.getElementById('pdfBtn').addEventListener('click', () => {
+  window.print();
+});
+
+/* =========================================================
+   SUPABASE INTEGRATION
+   ========================================================= */
+
+function setSync(status){
+  const el = document.getElementById('syncIndicator');
+  if (status === 'saving') el.textContent = '⏳ salvando';
+  else if (status === 'saved') el.textContent = '✅ salvo';
+  else if (status === 'error') el.textContent = '❌ erro';
+}
+
+function scheduleSave(){
+  if (suppressSave || !currentEdicaoId) return;
+  setSync('saving');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 800);
+}
+
+async function save(force){
+  if (!currentEdicaoId) return;
+  try{
+    const novoTimestamp = new Date().toISOString();
+    let query = supa
+      .from('edicoes')
+      .update({ dados: state, atualizado_em: novoTimestamp })
+      .eq('id', currentEdicaoId);
+    // trava otimista: só grava se ninguém mais mexeu na edição desde que carregamos ela
+    if (!force && lastKnownUpdatedAt) query = query.eq('atualizado_em', lastKnownUpdatedAt);
+
+    const { data, error } = await query.select('atualizado_em');
+    if (error) throw error;
+
+    if (!force && (!data || data.length === 0)){
+      // outro sócio salvou entre o nosso carregamento e agora — não sobrescreve sem avisar
+      showConflictBanner();
+      return;
+    }
+
+    lastKnownUpdatedAt = novoTimestamp;
+    hideConflictBanner();
+    setSync('saved');
+  }catch(err){
+    console.error('Erro ao salvar:', err);
+    setSync('error');
+  }
+}
+
+function showConflictBanner(){
+  document.getElementById('conflictBanner').style.display = 'flex';
+  setSync('error');
+}
+function hideConflictBanner(){
+  document.getElementById('conflictBanner').style.display = 'none';
+}
+
+async function carregarEdicoes(){
+  try{
+    const { data, error } = await supa
+      .from('edicoes')
+      .select('id, nome, atualizado_em')
+      .order('atualizado_em', { ascending:false });
+    if (error) throw error;
+    edicoes = data || [];
+    const select = document.getElementById('edicaoSelect');
+    if (!edicoes.length){
+      select.innerHTML = `<option value="">Nenhuma edição — crie uma</option>`;
+      currentEdicaoId = null;
+      suppressSave = true;
+      state = defaultState();
+      renderAll();
+      suppressSave = false;
+      return;
+    }
+    select.innerHTML = edicoes.map(e => `<option value="${e.id}">${escapeHtml(e.nome)}</option>`).join('');
+    const toSelect = currentEdicaoId && edicoes.some(e => e.id === currentEdicaoId) ? currentEdicaoId : edicoes[0].id;
+    select.value = toSelect;
+    await trocarEdicao(toSelect);
+  }catch(err){
+    console.error('Erro ao carregar edições:', err);
+    setSync('error');
+  }
+}
+
+async function trocarEdicao(id){
+  if (!id) return;
+  try{
+    setSync('saving');
+    clearTimeout(saveTimer);
+    const { data, error } = await supa
+      .from('edicoes')
+      .select('dados, atualizado_em')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    currentEdicaoId = id;
+    lastKnownUpdatedAt = data && data.atualizado_em;
+    suppressSave = true;
+    state = normalize(data && data.dados);
+    renderAll();
+    suppressSave = false;
+    hideConflictBanner();
+    setSync('saved');
+  }catch(err){
+    console.error('Erro ao trocar edição:', err);
+    setSync('error');
+  }
+}
+
+async function novaEdicao(){
+  const nome = await openModal({ title:'Nova edição', withInput:true, inputPlaceholder:'Ex: Deep Dash #7', confirmLabel:'Criar' });
+  if (!nome) return;
+  try{
+    setSync('saving');
+    const novoState = defaultState();
+    const { data, error } = await supa
+      .from('edicoes')
+      .insert({ nome, dados: novoState, atualizado_em: new Date().toISOString() })
+      .select('id')
+      .single();
+    if (error) throw error;
+    currentEdicaoId = data.id;
+    await carregarEdicoes();
+  }catch(err){
+    console.error('Erro ao criar edição:', err);
+    setSync('error');
+    await openModal({ title:'Erro', message:'Não foi possível criar a edição. Verifique a conexão com o Supabase.', confirmLabel:'Ok' });
+  }
+}
+
+async function excluirEdicao(){
+  if (!currentEdicaoId) return;
+  const edicaoAtual = edicoes.find(e => e.id === currentEdicaoId);
+  const nome = edicaoAtual ? edicaoAtual.nome : 'esta edição';
+  const ok = await openModal({
+    title: 'Excluir edição',
+    message: `Excluir "${nome}" para sempre? Todos os dados dessa edição (despesas, receitas, sócios, ingressos) serão perdidos. Essa ação não pode ser desfeita.`,
+    confirmLabel: 'Excluir edição',
+    danger: true
+  });
+  if (!ok) return;
+  try{
+    setSync('saving');
+    const { error } = await supa.from('edicoes').delete().eq('id', currentEdicaoId);
+    if (error) throw error;
+    currentEdicaoId = null;
+    await carregarEdicoes();
+  }catch(err){
+    console.error('Erro ao excluir edição:', err);
+    setSync('error');
+    await openModal({ title:'Erro', message:'Não foi possível excluir a edição. Verifique a conexão com o Supabase.', confirmLabel:'Ok' });
+  }
+}
+
+document.getElementById('edicaoSelect').addEventListener('change', (e) => {
+  trocarEdicao(e.target.value);
+});
+document.getElementById('novaEdicaoBtn').addEventListener('click', novaEdicao);
+document.getElementById('deleteEdicaoBtn').addEventListener('click', excluirEdicao);
+
+document.getElementById('conflictReload').addEventListener('click', () => {
+  trocarEdicao(currentEdicaoId); // descarta edições locais e busca a versão mais recente
+});
+document.getElementById('conflictOverride').addEventListener('click', () => {
+  save(true); // grava por cima mesmo assim, ignorando a trava otimista
+});
+
+/* =========================================================
+   ACORDEÃO DE SEÇÕES (só no mobile — desktop fica sempre expandido)
+   ========================================================= */
+const MOBILE_QUERY = '(max-width: 900px)';
+const ACCORDION_STORAGE_KEY = 'deepdash-secoes-recolhidas';
+const SECOES_RECOLHIDAS_POR_PADRAO = ['ingressos','socios','receitas','resumo','acerto','lucratividade']; // "despesas" fica aberta
+
+function getSecoesRecolhidasSalvas(){
+  try{
+    const raw = localStorage.getItem(ACCORDION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function salvarSecoesRecolhidas(){
+  try{
+    const ids = Array.from(document.querySelectorAll('.section.collapsed[data-section-id]')).map(el => el.dataset.sectionId);
+    localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(ids));
+  }catch(e){}
+}
+
+function initAccordion(){
+  const isMobile = window.matchMedia(MOBILE_QUERY).matches;
+  const salvo = getSecoesRecolhidasSalvas();
+  const recolhidasIniciais = salvo !== null ? salvo : (isMobile ? SECOES_RECOLHIDAS_POR_PADRAO : []);
+
+  document.querySelectorAll('.section[data-section-id]').forEach(section => {
+    section.classList.toggle('collapsed', recolhidasIniciais.includes(section.dataset.sectionId));
+  });
+
+  document.querySelectorAll('[data-toggle-section]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      btn.closest('.section').classList.toggle('collapsed');
+      salvarSecoesRecolhidas();
+    });
+  });
+
+  document.getElementById('expandAllBtn').addEventListener('click', () => {
+    document.querySelectorAll('.section[data-section-id]').forEach(s => s.classList.remove('collapsed'));
+    salvarSecoesRecolhidas();
+  });
+  document.getElementById('collapseAllBtn').addEventListener('click', () => {
+    document.querySelectorAll('.section[data-section-id]').forEach(s => s.classList.add('collapsed'));
+    salvarSecoesRecolhidas();
+  });
+}
+initAccordion();
+
+/* =========================================================
+   AUTENTICAÇÃO (login único compartilhado)
+   ========================================================= */
+
+function showApp(){
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('appWrap').style.display = '';
+  renderAll(); // render defaults imediatamente pra não piscar tela em branco
+  carregarEdicoes();
+}
+
+function showLoginGate(){
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('loginGate').style.display = 'flex';
+  const pwd = document.getElementById('loginPassword');
+  pwd.value = '';
+  setTimeout(() => pwd.focus(), 50);
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginSubmit');
+  const errEl = document.getElementById('loginError');
+  const senha = document.getElementById('loginPassword').value;
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Entrando...';
+  try{
+    const { error } = await supa.auth.signInWithPassword({ email: SHARED_LOGIN_EMAIL, password: senha });
+    if (error) throw error;
+    showApp();
+  }catch(err){
+    errEl.textContent = 'Senha incorreta.';
+    errEl.style.display = 'block';
+  }finally{
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+  }
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supa.auth.signOut();
+});
+
+supa.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_OUT') showLoginGate();
+});
+
+/* ---------------- init ---------------- */
+(async function init(){
+  const { data: { session } } = await supa.auth.getSession();
+  if (session){
+    showApp();
+  }else{
+    showLoginGate();
+  }
+})();
+</script>
+</body>
+</html>
