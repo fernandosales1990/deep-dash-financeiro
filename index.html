@@ -222,7 +222,12 @@ td input[type="number"]{font-family:'DM Mono',monospace;text-align:right;min-wid
 /* ---------- ingressos ---------- */
 .ing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
 .ing-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);}
-.ing-card h3{font-size:13px;margin-bottom:14px;font-weight:700;}
+.ing-card-head{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.ing-label{
+  flex:1;min-width:0;background:transparent;border:none;color:var(--text);
+  font-family:'Inter',sans-serif;font-weight:700;font-size:13px;padding:4px 0;
+}
+.ing-label:focus{outline:none;border-bottom:1px solid var(--border-strong);}
 .ing-field{margin-bottom:10px;}
 .ing-field label{display:block;font-family:'DM Mono',monospace;font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
 .ing-field input{
@@ -347,7 +352,7 @@ td input[type="number"]{font-family:'DM Mono',monospace;text-align:right;min-wid
 
   /* prevent iOS auto-zoom: inputs need >=16px */
   td input[type="text"], td input[type="number"], td select,
-  .ing-field input, .socio-item-row input[type="text"], .socio-item-row input[type="number"], .socio-name{
+  .ing-field input, .ing-label, .socio-item-row input[type="text"], .socio-item-row input[type="number"], .socio-name{
     font-size:16px;
   }
 
@@ -461,7 +466,7 @@ td input[type="number"]{font-family:'DM Mono',monospace;text-align:right;min-wid
   .lucro-grid{gap:8px;}
 
   /* ingressos */
-  .ing-card h3{font-size:12px;margin-bottom:10px;}
+  .ing-card-head{margin-bottom:10px;}
   .ing-field{margin-bottom:8px;}
   .ing-field label{font-size:9.5px;}
   .ing-field input{padding:8px 9px;}
@@ -642,6 +647,7 @@ td input[type="number"]{font-family:'DM Mono',monospace;text-align:right;min-wid
     <button class="section-title" data-toggle-section><span class="dot"></span> Ingressos <span class="section-chevron">⌄</span></button>
     <div class="section-body">
     <div class="ing-grid" id="ingGrid"></div>
+    <button class="add-row-btn" id="addIngresso">+ Adicionar Lote de Ingresso</button>
     </div>
   </div>
 
@@ -865,10 +871,23 @@ function normalize(data){
     };
   });
   const defIng = defaultState().ing;
-  s.ing = defIng.map(defItem => {
-    const src = (s.ing || []).find(x => x.id === defItem.id) || {};
-    return Object.assign({}, defItem, src);
+  const ingExistente = Array.isArray(s.ing) ? s.ing : [];
+  // garante que os 3 tipos clássicos existam, preservando o que já foi preenchido
+  const ingBase = defIng.map(defItem => {
+    const src = ingExistente.find(x => x.id === defItem.id);
+    return src ? Object.assign({}, defItem, src) : defItem;
   });
+  // mantém quaisquer lotes extras já adicionados (ex: 2º lote, Pix)
+  const ingExtras = ingExistente.filter(x => !defIng.some(d => d.id === x.id)).map(x => ({
+    id: x.id || uid(),
+    label: x.label || '',
+    tipo: x.tipo || 'outro',
+    qtd: x.qtd ?? '',
+    unit: x.unit ?? '',
+    taxa: x.taxa ?? '',
+    notas: x.notas ?? ''
+  }));
+  s.ing = [...ingBase, ...ingExtras];
   s.acerto = {
     "0": Object.assign({dev:'', lucro:''}, (s.acerto && s.acerto["0"]) || {}),
     "1": Object.assign({dev:'', lucro:''}, (s.acerto && s.acerto["1"]) || {}),
@@ -880,10 +899,9 @@ function normalize(data){
 /* ---------------- calculations ---------------- */
 function calcIngLiquido(ing){
   const qtd = num(ing.qtd), unit = num(ing.unit), taxa = num(ing.taxa);
-  if (ing.tipo === 'online') return qtd * unit * (1 - taxa/100);
-  if (ing.tipo === 'porta') return qtd * unit;
-  if (ing.tipo === 'vip') return unit ? qtd * unit : 0;
-  return 0;
+  // fórmula única pra qualquer lote/tipo: quantidade × valor unitário, descontando a taxa (%) se houver.
+  // lotes sem taxa (porta, pix, vip) simplesmente deixam o campo em branco = 0%.
+  return qtd * unit * (1 - taxa/100);
 }
 
 function socioTotal(s){
@@ -1029,12 +1047,14 @@ function attachDespListeners(){
 /* ---------------- render: ingressos ---------------- */
 function renderIngressos(){
   const grid = document.getElementById('ingGrid');
-  grid.innerHTML = state.ing.map(ing => {
+  grid.innerHTML = state.ing.length ? state.ing.map(ing => {
     const liquido = calcIngLiquido(ing);
-    const showTaxa = ing.tipo === 'online';
     return `
     <div class="ing-card" data-id="${ing.id}">
-      <h3>${ing.label}</h3>
+      <div class="ing-card-head">
+        <input type="text" class="ing-label" data-field="label" value="${escapeHtml(ing.label)}" placeholder="Ex: 1º Lote Online, Pix, Porta...">
+        <button class="row-remove" data-action="remove-ing" title="Remover lote">✕</button>
+      </div>
       <div class="ing-field">
         <label>Quantidade</label>
         <input type="number" inputmode="numeric" data-field="qtd" value="${ing.qtd}" placeholder="0">
@@ -1043,28 +1063,40 @@ function renderIngressos(){
         <label>Valor Unitário</label>
         <input type="number" inputmode="decimal" data-field="unit" value="${ing.unit}" placeholder="0,00" step="0.01">
       </div>
-      ${showTaxa ? `
       <div class="ing-field">
         <label>Taxa (%)</label>
         <input type="number" inputmode="decimal" data-field="taxa" value="${ing.taxa}" placeholder="0" step="0.1">
-      </div>` : ''}
+      </div>
       <div class="ing-liquido">
         <span class="label">Líquido</span>
         <span class="val mono">${brl(liquido)}</span>
       </div>
     </div>`;
-  }).join('');
+  }).join('') : `<div class="empty-hint">Nenhum lote de ingresso ainda</div>`;
 
   grid.querySelectorAll('.ing-card').forEach(card => {
-    const id = card.dataset.id;
+    const id = card.dataset.id; // dataset é sempre string; ids antigos ('ing-online') e novos (uid() numérico) convivem
     card.querySelectorAll('[data-field]').forEach(el => {
       el.addEventListener('input', () => {
-        const item = state.ing.find(i => i.id === id);
+        const item = state.ing.find(i => String(i.id) === id);
+        if (!item) return;
         item[el.dataset.field] = el.value;
-        const liquidoEl = card.querySelector('.ing-liquido .val');
-        liquidoEl.textContent = brl(calcIngLiquido(item));
+        if (el.dataset.field !== 'label'){
+          const liquidoEl = card.querySelector('.ing-liquido .val');
+          liquidoEl.textContent = brl(calcIngLiquido(item));
+        }
         recalcAndSave();
       });
+    });
+    const rm = card.querySelector('[data-action="remove-ing"]');
+    if (rm) rm.addEventListener('click', async () => {
+      const item = state.ing.find(i => String(i.id) === id);
+      const nome = item && item.label ? `"${item.label}"` : 'esse lote';
+      const ok = await openModal({ title:'Excluir lote de ingresso', message:`Remover ${nome}? Essa ação não pode ser desfeita.`, confirmLabel:'Excluir', danger:true });
+      if (!ok) return;
+      state.ing = state.ing.filter(i => String(i.id) !== id);
+      renderIngressos();
+      recalcAndSave();
     });
   });
 }
@@ -1397,6 +1429,11 @@ document.getElementById('addDespReal').addEventListener('click', () => {
 document.getElementById('addDespProv').addEventListener('click', () => {
   state.desp.push({ id: uid(), tipo:'prov', cat: CATEGORIAS_DESPESA[0], name:'', value:'', status:'pago', pago:'' });
   renderDespesas();
+  recalcAndSave();
+});
+document.getElementById('addIngresso').addEventListener('click', () => {
+  state.ing.push({ id: uid(), label:'', tipo:'outro', qtd:'', unit:'', taxa:'', notas:'' });
+  renderIngressos();
   recalcAndSave();
 });
 document.getElementById('addRec').addEventListener('click', () => {
